@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人主页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* 全屏背景层 - 缓慢缩放动画 */
+        .bg-layer {
+            position: fixed;
+            top: -30px; left: -30px; right: -30px; bottom: -30px;
+            background: url('https://521.im/3QYtJICT.jpg') no-repeat center center;
+            background-size: cover;
+            animation: bgZoom 20s ease-in-out infinite alternate;
+            z-index: -2;
+        }
+
+        @keyframes bgZoom {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.12); }
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* 雪花画布 - 覆盖全屏，穿透点击 */
+        #snowCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* 玻璃磨砂卡片 - 入场动画 */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.45);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            text-align: center;
+            animation: cardEntrance 0.8s ease-out forwards;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        @keyframes cardEntrance {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 头像 - 浮动 + 悬浮旋转 */
+        .avatar {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            object-fit: cover;
+            animation: avatarFloat 3s ease-in-out infinite;
+            transition: transform 0.4s ease;
+            cursor: pointer;
+        }
+
+        .avatar:hover {
+            transform: scale(1.15) rotate(8deg);
+            animation-play-state: paused;
+        }
+
+        @keyframes avatarFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        /* 逐项淡入上移 */
+        .nickname {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 0 5px 0;
+            color: #d4af37;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.15s forwards;
+        }
+
+        .id-tag {
+            font-size: 13px;
+            color: #555;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 2px 10px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.25s forwards;
+        }
+
+        .bio {
+            font-size: 14px;
+            color: #444;
+            margin-bottom: 15px;
+            line-height: 1.5;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.35s forwards;
+        }
+
+        .info-row {
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.4s forwards;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.45s forwards;
+        }
+
+        .svip {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .coin {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tags {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.5s forwards;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.7);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .tag:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 按钮 - 流光 + 悬浮 */
+        .add-btn {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            background: linear-gradient(135deg, #2aab9f, #26a69a);
+            color: #fff;
+            text-align: center;
+            padding: 16px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-size: 17px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 15px rgba(42, 171, 159, 0.3);
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeInUp 0.6s ease-out 0.55s forwards;
+        }
+
+        .add-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+        }
+
+        .add-btn:hover::before {
+            animation: btnShine 0.7s ease-out;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(42, 171, 159, 0.5);
+            filter: brightness(1.08);
+        }
+
+        @keyframes btnShine {
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-layer"></div>
+    <canvas id="snowCanvas"></canvas>
+
+    <div class="container">
+        <img src="https://521.im/5VhJXPez.jpg" alt="头像" class="avatar">
+        <h1 class="nickname">失声雨下</h1>
+        <div class="id-tag">ID: louuvueur</div>
+
+        <div class="bio">
+            风会记得来时的痕迹，答案交给时间地去寻觅
+        </div>
+
+        <div class="info-row">
+            ♂ 男 | 天蝎座 | 单身待解放
+        </div>
+
+        <div class="badges">
+         
+            <span class="svip">QQ号:1741131705</span>
+           
+        </div>
+
+        <div class="tags">
+            <span class="tag">国风古韵</span>
+            <span class="tag">无产阶级共产主义</span>
+        </div>
+
+        <a href="https://qm.qq.com/cgi-bin/qm/qr?k=m_835X2MOnxu-XWqQ8vW8XGiaemyU5uv" class="add-btn" target="_blank" rel="noopener noreferrer">
+            加我QQ
+        </a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('snowCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const flakeCount = 70;
+        const snowflakes = [];
+
+        for (let i = 0; i < flakeCount; i++) {
+            snowflakes.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                r: Math.random() * 3 + 1,
+                d: Math.random() * 1 + 0.5,
+                a: Math.random() * 0.5 + 0.3,
+                swing: Math.random() * Math.PI * 2,
+                swingSpeed: Math.random() * 0.02 + 0.01
+            });
+        }
+
+        function drawSnow() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < flakeCount; i++) {
+                const flake = snowflakes[i];
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${flake.a})`;
+                ctx.fill();
+            }
+
+            moveSnow();
+            requestAnimationFrame(drawSnow);
+        }
+
+        function moveSnow() {
+            for (let i = 0; i < flakeCount; i++) {
+                const flake = snowflakes[i];
+                flake.y += Math.pow(flake.d, 2) + 1;
+                flake.swing += flake.swingSpeed;
+                flake.x += Math.sin(flake.swing) * 0.5;
+
+                if (flake.y > canvas.height + 10) {
+                    snowflakes[i].y = -10;
+                    snowflakes[i].x = Math.random() * canvas.width;
+                }
+            }
+        }
+
+        drawSnow();
+    </script>
+</body>
+</html>
